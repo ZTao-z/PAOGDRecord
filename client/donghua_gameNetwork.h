@@ -108,7 +108,7 @@ public:
 		destAddr.sin_family = AF_INET;
 		destAddr.sin_port = htons(this->PORT);
 
-		inet_pton(AF_INET, (this->IP).c_str(), &destAddr.sin_addr);//destAddr.sin_addr.S_un.S_addr = inet_addr((this->IP).c_str());
+		inet_pton(AF_INET, (this->IP).c_str(), &destAddr.sin_addr);
 
 		string beginMsg = this->playerName + ":" + "r";
 
@@ -155,6 +155,40 @@ public:
 		WSACleanup();
 
 		return isBegin;
+	}
+	
+	void getFood(int& seed) {
+		WSADATA data;
+		WORD w = MAKEWORD(2, 0);
+		::WSAStartup(w, &data);
+
+		SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		sockaddr_in destAddr;
+		destAddr.sin_family = AF_INET;
+		destAddr.sin_port = htons(this->PORT);
+
+		inet_pton(AF_INET, (this->IP).c_str(), &destAddr.sin_addr);
+
+		string foodMsg = this->playerName + ":" + "f";
+
+		Sleep(rand() % 20);
+
+		sendto(s, foodMsg.c_str(), 60, 0, (sockaddr*)& destAddr, sizeof(destAddr));
+
+		int timeout = 3000;
+		int b = setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char*)& timeout, sizeof(timeout));
+
+		int n = sizeof(destAddr);
+		char buffer[1460] = { 0 };
+		int c = recvfrom(s, buffer, 1460, 0, (sockaddr*)& destAddr, &n);
+
+		if (c != SOCKET_ERROR && buffer) {
+			string a = buffer;
+			seed = atoi(a.c_str());
+			return;
+		}
+
+		seed = 1;
 	}
 
 	void sendAlive() {
@@ -205,8 +239,6 @@ public:
 		recvMsg(sct, destAddr, actionList, nplayers);
 
 		for (std::map<std::string, std::string>::iterator ptr = actionList.begin(); ptr != actionList.end(); ptr++) {
-			//int s = old_actionList[ptr->first].size();
-			//if (s >= ptr->second.size()) break;
 			todo_actionList.insert_or_assign(ptr->first, ptr->second/*ptr->second.substr(s)*/);
 			std::cout << ptr->first << ":" << todo_actionList[ptr->first] << std::endl;
 		}
@@ -219,7 +251,7 @@ public:
 
 	void recvMsg(SOCKET& s, sockaddr_in& destAddr, std::map<std::string,std::string>& actionList, int nplayers) {
 		int n = sizeof(destAddr);
-		char buffer[1461] = { 0 };
+		char buffer[1460] = { 0 };
 		int c = recvfrom(s, buffer, 1460, 0, (sockaddr*)&destAddr, &n);
 		if (c != SOCKET_ERROR && buffer) {
 			std::string res = buffer;

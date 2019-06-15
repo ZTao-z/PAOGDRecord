@@ -77,7 +77,7 @@ int main() {
 		return 0;
 	}
 
-	std::cout << "Log in successfully!" << std::endl;
+	std::cout << "Welcome player: " << name << "!" << std::endl;
 
 	bool isBegin = gn->beginGame(name);
 	if (!isBegin) {
@@ -100,20 +100,6 @@ int main() {
 	}
 	game.chooseSnake(name);
 	game.initStoneAndFood();
-	
-	/*
-	for (int i = 0; i < playerList.size(); i++) {
-		Snake* s = game.snakeList[playerList[i]];
-		std::deque<Position> t = s->getSnake();
-		std::cout << playerList[i] << ": " << std::endl;
-		std::cout << t.size() << std::endl;
-		for (int j = 0; j < t.size(); j++) {
-			std::cout << t[j].x << " " << t[j].y << ",";
-		}
-		std::cout << std::endl;
-	}
-	system("pause");
-	*/
 	
 	// 实例化GLFW窗口
 	glfwInit();
@@ -232,7 +218,7 @@ int main() {
 
 	// 模式选择
 	int modeChange = 1, orth_pers = 1;
-	bool isAutoMove = false, isRestart = false;
+	bool isAutoMove = false, isRestart = false, isWin = false;
 	int movement = 1;
 	float move_interval = 0, move_thres = 0.2f,
 		food_interval = 0, food_thres = 0.2f,
@@ -255,29 +241,42 @@ int main() {
 		send_interval += deltaTime;
 		alive_interval += deltaTime;
 
-		if (game.isFinish && move_interval > 1.0f) {
-			gn->sendAlive();
+		if ((game.isFinish || isWin) && move_interval > 1.0f) {
+			//gn->sendAlive();
 			gn->sendMovement(5, playerList.size());
 			move_interval = 0;
 		}
 
 		if (!game.isFinish && move_interval > 1.0f/*(0.4 - move_thres)*/) {
-			gn->sendAlive();
+			//gn->sendAlive();
 			gn->sendMovement(movement, playerList.size());
+			int losers = 0;
 			for (std::map<std::string, std::string>::iterator ptr = gn->todo_actionList.begin(); ptr != gn->todo_actionList.end(); ptr++) {
 				game.chooseSnake(ptr->first);
 				std::string str = ptr->second;
 				for (int index = 0; index < str.size(); index++) {
 					int m = int(str[index] - '0');
-					snakeMovementApply(m, 1.0f, ptr->first == name);
+					if (m == 5) {
+						losers++;
+						//game.removeSnake();
+					}
+					else {
+						snakeMovementApply(m, 1.0f, ptr->first == name);
+					}
 				}
+			}
+			if (playerList.size() >= 2 && losers >= playerList.size() - 1) {
+				isWin = true;
 			}
 			game.chooseSnake(name);
 			move_interval = 0;
 		}
 
 		if (!game.isFinish && food_interval > (1.0f / food_thres)) {
-			game.randomGenFood();
+			int seed = 1;
+			gn->getFood(seed);
+			//game.randomGenFood();
+			game.genFoodFromServer(seed);
 			food_interval = 0;
 		}
 
@@ -297,7 +296,13 @@ int main() {
 
 		if (game.isFinish) {
 			ImGui::Begin("Information");
-			isRestart = ImGui::Button("Game Over!", ImVec2(60.0f, 30.0f));
+			ImGui::Text("Game Over!");
+			ImGui::End();
+		}
+		
+		if (isWin) {
+			ImGui::Begin("Information");
+			ImGui::Text("You win!");
 			ImGui::End();
 		}
 		// 渲染指令

@@ -19,6 +19,7 @@ std::map<std::string, std::string> unprocessList;
 std::map<std::string, bool> aliveStatus;
 
 bool isStart = false;
+int foodSeed = rand() % 100 + 1;
 
 vector<string> split(const string& str, const string& delim) {
 	vector<string> res;
@@ -87,7 +88,7 @@ int main() {
 	vector<string> playerList;
 
 	int count = 0;
-
+	int foodCount = 0;
 	int timeout = 2000;
 	int b = setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
@@ -98,7 +99,7 @@ int main() {
 		if (recvfrom(s, buffer, 1460, 0, (sockaddr*)&clientAddr, &n) != SOCKET_ERROR && buffer) {
 			string input = buffer;
 			vector<string> res = split(input, ":");
-			cout << res[0] << " " << res[1] << endl;
+			printf("%s : %s\n", res[0].c_str(), res[1].c_str());
 			if (res[1][0] == 'h') {
 				if (isStart) {
 					::sendto(s, "R", 20, 0, (sockaddr*)&clientAddr, sizeof(clientAddr));
@@ -131,6 +132,17 @@ int main() {
 			}
 			else if (res[1][0] == 'l') {
 				aliveStatus.insert_or_assign(res[0], true);
+			}
+			else if (res[1][0] == 'f') {
+				char n[5];
+				sprintf_s(n, 5, "%d", foodSeed);
+				//std::string t = n;
+				sendto(s, n, 1460, 0, (sockaddr*)& clientAddr, sizeof(clientAddr));
+				foodCount++;
+				if (foodCount == playerList.size()) {
+					foodSeed = rand() % 100 + 1;
+					foodCount = 0;
+				}
 			}
 			else {
 				updateInfo(res[0], res[1][0]);
