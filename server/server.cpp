@@ -14,10 +14,18 @@
 
 using namespace std;
 
+struct Position {
+	int x, y;
+	Position(int a, int b) {
+		x = a;
+		y = b;
+	}
+};
+
+typedef struct Position Position;
+
 std::map<std::string, std::string> unprocessList;
-
-std::map<std::string, bool> aliveStatus;
-
+std::vector<Position> initialSnake{Position(1,1), Position(5,5), Position(3,14), Position(17,18)};
 bool isStart = false;
 int foodSeed = rand() % 100 + 1;
 
@@ -89,8 +97,8 @@ int main() {
 
 	int count = 0;
 	int foodCount = 0;
-	int timeout = 2000;
-	int b = setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+	//int timeout = 2000;
+	//int b = setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
 
 	while (true) {
 		sockaddr_in clientAddr;
@@ -101,7 +109,7 @@ int main() {
 			vector<string> res = split(input, ":");
 			printf("%s : %s\n", res[0].c_str(), res[1].c_str());
 			if (res[1][0] == 'h') {
-				if (isStart) {
+				if (isStart || playerList.size() >= 4) {
 					::sendto(s, "R", 20, 0, (sockaddr*)&clientAddr, sizeof(clientAddr));
 				}
 				else {
@@ -111,7 +119,6 @@ int main() {
 			}
 			else if (res[1][0] == 'r') {
 				addrList.insert_or_assign(res[0], clientAddr);
-				aliveStatus.insert_or_assign(res[0], true);
 				playerList.push_back(res[0]);
 			}
 			else if (res[1][0] == 's') {
@@ -121,7 +128,7 @@ int main() {
 					string t = "";
 					for (int j = 0; j < playerList.size(); j++) {
 						char s[20];
-						sprintf_s(s, 20, "%s,%d,%d", playerList[j].c_str(), j * 2, j * 2);
+						sprintf_s(s, 20, "%s,%d,%d", playerList[j].c_str(), initialSnake[j].x, initialSnake[j].y);
 						t += s;
 						if (j < playerList.size() - 1) {
 							t += ";";
@@ -130,16 +137,24 @@ int main() {
 					::sendto(s, t.c_str(), 1000, 0, (sockaddr*)&i->second, sizeof(i->second));
 				}
 			}
-			else if (res[1][0] == 'l') {
-				aliveStatus.insert_or_assign(res[0], true);
+			else if (res[1][0] == 'q') {
+				for (std::vector<std::string>::iterator ptr = playerList.begin(); ptr != playerList.end(); ) {
+					if (*ptr == res[0]) {
+						ptr = playerList.erase(ptr);
+						updateInfo(res[0], '5');
+						break;
+					}
+					else {
+						ptr++;
+					}
+				}
 			}
 			else if (res[1][0] == 'f') {
 				char n[5];
 				sprintf_s(n, 5, "%d", foodSeed);
-				//std::string t = n;
 				sendto(s, n, 1460, 0, (sockaddr*)& clientAddr, sizeof(clientAddr));
 				foodCount++;
-				if (foodCount == playerList.size()) {
+				if (foodCount >= playerList.size()) {
 					foodSeed = rand() % 100 + 1;
 					foodCount = 0;
 				}
@@ -148,32 +163,13 @@ int main() {
 				updateInfo(res[0], res[1][0]);
 				addrList[res[0]] = clientAddr;
 				count++;
-				if (count == playerList.size()) {
+				if (count >= playerList.size()) {
 					for (map<string, sockaddr_in>::iterator i = addrList.begin(); i != addrList.end(); i++) {
 						sendBack(i->first, s, i->second);
-						/*if (aliveStatus[i->first]) {
-							sendBack(i->first, s, i->second);
-							aliveStatus[i->first] = true;
-						}
-						else {
-							aliveStatus[i->first] = false;
-						}*/
 					}
 					count = 0;
 				}	
 			}
-		}
-		else {
-			/*
-			for (std::vector<std::string>::iterator ptr = playerList.begin(); ptr != playerList.end(); ) {
-				if (!aliveStatus[*ptr]) {
-					ptr = playerList.erase(ptr);
-				}
-				else {
-					ptr++;
-				}
-			}
-			*/
 		}
 	}
 	

@@ -72,7 +72,7 @@ int main() {
 	bool login = gn->OpenGame();
 	
 	if (!login) {
-		std::cout << "Can not find the server!" << std::endl;
+		std::cout << "Game is started or more than 4 players!" << std::endl;
 		system("pause");
 		return 0;
 	}
@@ -242,13 +242,11 @@ int main() {
 		alive_interval += deltaTime;
 
 		if ((game.isFinish || isWin) && move_interval > 1.0f) {
-			//gn->sendAlive();
 			gn->sendMovement(5, playerList.size());
 			move_interval = 0;
 		}
 
-		if (!game.isFinish && move_interval > 1.0f/*(0.4 - move_thres)*/) {
-			//gn->sendAlive();
+		if (!(game.isFinish || isWin) && move_interval > 1.0f/*(0.4 - move_thres)*/) {
 			gn->sendMovement(movement, playerList.size());
 			int losers = 0;
 			for (std::map<std::string, std::string>::iterator ptr = gn->todo_actionList.begin(); ptr != gn->todo_actionList.end(); ptr++) {
@@ -258,7 +256,7 @@ int main() {
 					int m = int(str[index] - '0');
 					if (m == 5) {
 						losers++;
-						//game.removeSnake();
+						game.removeSnake(index+1);
 					}
 					else {
 						snakeMovementApply(m, 1.0f, ptr->first == name);
@@ -272,7 +270,7 @@ int main() {
 			move_interval = 0;
 		}
 
-		if (!game.isFinish && food_interval > (1.0f / food_thres)) {
+		if (!(game.isFinish || isWin) && food_interval > (1.0f / food_thres)) {
 			int seed = 1;
 			gn->getFood(seed);
 			//game.randomGenFood();
@@ -399,6 +397,8 @@ int main() {
 	glfwDestroyWindow(window);
 	glfwTerminate();
 	
+	// quit the game
+	gn->sendQuit();
 
 	return 0;
 }

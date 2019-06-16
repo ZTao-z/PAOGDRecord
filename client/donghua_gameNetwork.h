@@ -191,7 +191,7 @@ public:
 		seed = 1;
 	}
 
-	void sendAlive() {
+	void sendQuit() {
 		WSADATA data;
 		WORD w = MAKEWORD(2, 0);
 		::WSAStartup(w, &data);
@@ -203,7 +203,7 @@ public:
 
 		inet_pton(AF_INET, (this->IP).c_str(), &destAddr.sin_addr);
 
-		string aliveMsg = this->playerName + ":" + "l";
+		string aliveMsg = this->playerName + ":" + "q";
 
 		sendto(s, aliveMsg.c_str(), 60, 0, (sockaddr*)&destAddr, sizeof(destAddr));
 

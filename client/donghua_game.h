@@ -134,8 +134,9 @@ public:
 		return this->body;
 	}
 
-	void deleteBody() {
+	void deleteBody(float s) {
 		std::deque<Position> emp;
+		emp.push_back(Position(-6 * s, -6 * s));
 		this->body = emp;
 	}
 };
@@ -202,8 +203,8 @@ public:
 		this->snake = this->snakeList[name];
 	}
 
-	void removeSnake() {
-		this->snake->deleteBody();
+	void removeSnake(float s) {
+		this->snake->deleteBody(s);
 	}
 
 	void reset() {
